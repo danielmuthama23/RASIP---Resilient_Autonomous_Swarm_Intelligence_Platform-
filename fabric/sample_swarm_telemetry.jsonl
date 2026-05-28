@@ -1,0 +1,5 @@
+{"droneId":"DR-01","ts":1717100000.0,"battery":92.5,"signal":0.86,"aiConf":0.78,"pos":{"x":12.5,"y":-3.2,"z":150.3},"formation":"V-WING","alert":false}
+{"droneId":"DR-02","ts":1717100000.0,"battery":89.1,"signal":0.81,"aiConf":0.82,"pos":{"x":14.0,"y":-5.1,"z":149.8},"formation":"V-WING","alert":false}
+{"droneId":"DR-03","ts":1717100000.0,"battery":87.3,"signal":0.77,"aiConf":0.65,"pos":{"x":11.8,"y":-4.4,"z":151.0},"formation":"V-WING","alert":true}
+{"droneId":"DR-04","ts":1717100000.0,"battery":94.0,"signal":0.92,"aiConf":0.90,"pos":{"x":10.2,"y":-2.8,"z":152.1},"formation":"V-WING","alert":false}
+{"droneId":"DR-05","ts":1717100000.0,"battery":91.7,"signal":0.88,"aiConf":0.76,"pos":{"x":13.3,"y":-3.9,"z":150.7},"formation":"V-WING","alert":false}

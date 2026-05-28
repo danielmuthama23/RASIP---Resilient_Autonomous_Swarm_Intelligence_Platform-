@@ -1,0 +1,207 @@
+# ── Namespace ────────────────────────────────────────────
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: rasip
+  labels:
+    app: rasip
+    env: production
+
+---
+# ── ConfigMap: shared env vars ───────────────────────────
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rasip-config
+  namespace: rasip
+data:
+  BACKEND_URL:      "http://backend-svc:8000"
+  MQTT_HOST:        "mqtt-svc"
+  MQTT_PORT:        "1883"
+  ZMQ_PUSH_ADDR:    "tcp://*:5555"
+  ZMQ_PULL_ADDR:    "tcp://zmq-svc:5555"
+  FABRIC_KQL_DB:    "rasip"
+  ONELAKE_FS:       "onelake"
+
+---
+# ── Secret: sensitive keys (base64-encoded in prod) ──────
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rasip-secrets
+  namespace: rasip
+type: Opaque
+stringData:
+  RASIP_AES_KEY:              "<set-via-sealed-secrets>"
+  RASIP_HMAC_SECRET:          "<set-via-sealed-secrets>"
+  AZURE_EVENTHUB_CONN_STR:    "<set-via-sealed-secrets>"
+  FABRIC_KQL_ENDPOINT:        "<set-via-sealed-secrets>"
+  NEXT_PUBLIC_MAPBOX_TOKEN:   "<set-via-sealed-secrets>"
+
+---
+# ── Frontend Deployment ──────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: rasip
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: rasip/frontend:latest
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: rasip-config
+            - secretRef:
+                name: rasip-secrets
+          resources:
+            requests:
+              cpu:    "250m"
+              memory: "256Mi"
+            limits:
+              cpu:    "1000m"
+              memory: "512Mi"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-svc
+  namespace: rasip
+spec:
+  selector:
+    app: frontend
+  ports:
+    - port: 80
+      targetPort: 3000
+
+---
+# ── Backend Deployment ───────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: rasip
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: rasip/backend:latest
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: rasip-config
+            - secretRef:
+                name: rasip-secrets
+          resources:
+            requests:
+              cpu:    "500m"
+              memory: "512Mi"
+            limits:
+              cpu:    "2000m"
+              memory: "2Gi"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 20
+            periodSeconds: 30
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-svc
+  namespace: rasip
+spec:
+  selector:
+    app: backend
+  ports:
+    - port: 8000
+      targetPort: 8000
+
+---
+# ── Edge AI Deployment ───────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edge
+  namespace: rasip
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: edge
+  template:
+    metadata:
+      labels:
+        app: edge
+    spec:
+      containers:
+        - name: edge
+          image: rasip/edge:latest
+          ports:
+            - containerPort: 9000
+          envFrom:
+            - configMapRef:
+                name: rasip-config
+            - secretRef:
+                name: rasip-secrets
+          resources:
+            requests:
+              cpu:    "1000m"
+              memory: "1Gi"
+            limits:
+              cpu:    "4000m"
+              memory: "4Gi"
+          volumeMounts:
+            - name: model-cache
+              mountPath: /app/edge/models
+      volumes:
+        - name: model-cache
+          emptyDir: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: edge-svc
+  namespace: rasip
+spec:
+  selector:
+    app: edge
+  ports:
+    - port: 9000
+      targetPort: 9000

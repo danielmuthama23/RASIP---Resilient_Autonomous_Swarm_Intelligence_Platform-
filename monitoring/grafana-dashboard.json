@@ -1,0 +1,19 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "panels": [
+    {
+      "type": "text",
+      "title": "RASIP Overview",
+      "gridPos": { "h": 4, "w": 24, "x": 0, "y": 0 },
+      "options": {
+        "content": "<h3>RASIP dashboard placeholder</h3><p>Customize this dashboard with backend telemetry panels.</p>",
+        "mode": "markdown"
+      }
+    }
+  ],
+  "schemaVersion": 36,
+  "title": "RASIP Swarm Dashboard",
+  "uid": "rasip-swarm-dashboard"
+}

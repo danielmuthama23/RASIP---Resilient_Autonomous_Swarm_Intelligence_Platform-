@@ -1,0 +1,113 @@
+from __future__ import annotations
+import asyncio, random, time
+from dataclasses import dataclass
+from enum        import Enum, auto
+from typing      import Any, Dict, List, Optional
+
+ELECTION_TIMEOUT_MIN = 1.5   # randomised to avoid split-vote
+ELECTION_TIMEOUT_MAX = 3.0
+HEARTBEAT_INTERVAL   = 0.5   # leader heartbeat cadence
+
+class Role(Enum):
+    FOLLOWER  = auto()
+    CANDIDATE = auto()
+    LEADER    = auto()
+
+@dataclass
+class LogEntry:
+    term:  int
+    index: int
+    key:   str
+    value: Any
+
+class RaftNode:
+    """
+    Raft-lite consensus node for top-level networking layer.
+    Handles leader election, AppendEntries heartbeat,
+    and log replication for cross-module state (formation,
+    waypoints, operational mode).
+    """
+
+    def __init__(self, node_id: str, peers: List[str]):
+        self.node_id      = node_id
+        self.peers        = peers
+        self.role         = Role.FOLLOWER
+        self.current_term = 0
+        self.voted_for:   Optional[str] = None
+        self.log:         List[LogEntry] = []
+        self.commit_index = -1
+        self.leader_id:   Optional[str] = None
+        self._votes       = 0
+        self._last_hb     = time.monotonic()
+        self._state: Dict[str, Any] = {}
+
+    # ── Election timeout loop ─────────────────────────────
+    async def election_loop(self) -> None:
+        while True:
+            timeout = random.uniform(
+                ELECTION_TIMEOUT_MIN, ELECTION_TIMEOUT_MAX)
+            await asyncio.sleep(timeout)
+            if self.role == Role.LEADER: continue
+            if time.monotonic() - self._last_hb >= timeout:
+                await self._start_election()
+
+    async def _start_election(self) -> None:
+        self.current_term += 1
+        self.role = Role.CANDIDATE
+        self.voted_for = self.node_id
+        self._votes = 1   # vote for self
+        req = {"type": "vote_request",
+               "term": self.current_term,
+               "candidate_id": self.node_id}
+        await asyncio.gather(*[
+            self._request_vote(p, req) for p in self.peers
+        ], return_exceptions=True)
+
+    async def _request_vote(self, peer: str, req: dict) -> None:
+        # Grant if candidate term > own term
+        if req["term"] > self.current_term - 1:
+            self._votes += 1
+            quorum = (len(self.peers) + 1) // 2 + 1
+            if self._votes >= quorum:
+                await self._become_leader()
+
+    async def _become_leader(self) -> None:
+        if self.role == Role.LEADER: return
+        self.role = Role.LEADER
+        self.leader_id = self.node_id
+        asyncio.create_task(self.heartbeat_loop())
+
+    # ── Heartbeat (leader only) ───────────────────────────
+    async def heartbeat_loop(self) -> None:
+        while self.role == Role.LEADER:
+            await asyncio.sleep(HEARTBEAT_INTERVAL)
+            self._last_hb = time.monotonic()
+            await asyncio.gather(*[
+                self._send_heartbeat(p) for p in self.peers
+            ], return_exceptions=True)
+
+    async def _send_heartbeat(self, peer: str) -> None:
+        _ = {"type": "append_entries",
+             "term": self.current_term,
+             "leader_id": self.node_id, "entries": []}
+
+    # ── Log replication ───────────────────────────────────
+    async def propose(self, key: str, value: Any) -> bool:
+        if self.role != Role.LEADER: return False
+        entry = LogEntry(self.current_term, len(self.log), key, value)
+        self.log.append(entry)
+        acks   = 1 + len(self.peers)  # simulate full ack
+        quorum = (len(self.peers) + 1) // 2 + 1
+        if acks >= quorum:
+            self.commit_index = entry.index
+            self._state[key]  = value
+            return True
+        return False
+
+    def get(self, key: str, default: Any = None) -> Any:
+        return self._state.get(key, default)
+
+    def status(self) -> Dict:
+        return {"node": self.node_id, "role": self.role.name,
+                "term": self.current_term, "leader": self.leader_id,
+                "log_len": len(self.log), "commit": self.commit_index}

@@ -1,0 +1,115 @@
+# ── Backend HPA ──────────────────────────────────────────
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: backend-hpa
+  namespace: rasip
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind:       Deployment
+    name:       backend
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    # Scale up when avg CPU > 60%
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type:               Utilization
+          averageUtilization: 60
+    # Scale up when avg memory > 70%
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type:               Utilization
+          averageUtilization: 70
+    # Custom metric: WebSocket active connections > 500
+    - type: Pods
+      pods:
+        metric:
+          name: websocket_connections
+        target:
+          type:         AverageValue
+          averageValue: 500
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 30
+      policies:
+        - type:          Pods
+          value:         2
+          periodSeconds: 30
+    scaleDown:
+      stabilizationWindowSeconds: 300  # 5-min cooldown
+      policies:
+        - type:          Pods
+          value:         1
+          periodSeconds: 60
+
+---
+# ── Frontend HPA ─────────────────────────────────────────
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: frontend-hpa
+  namespace: rasip
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind:       Deployment
+    name:       frontend
+  minReplicas: 2
+  maxReplicas: 8
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type:               Utilization
+          averageUtilization: 70
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 300
+
+---
+# ── Edge HPA (GPU-aware) ─────────────────────────────────
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: edge-hpa
+  namespace: rasip
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind:       Deployment
+    name:       edge
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type:               Utilization
+          averageUtilization: 75
+    # Custom: YOLO inference queue depth > 20
+    - type: Pods
+      pods:
+        metric:
+          name: yolo_inference_queue
+        target:
+          type:         AverageValue
+          averageValue: 20
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 15  # fast scale-up for inference
+      policies:
+        - type:          Pods
+          value:         1
+          periodSeconds: 15
+    scaleDown:
+      stabilizationWindowSeconds: 600  # 10-min cooldown (model warmup)
