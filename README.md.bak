@@ -321,6 +321,9 @@ Fabric ingestion is driven by `backend/fabric/fabric_stream.py`, which batches t
 
 ---
 
+[Alt Text](asset/analytics.png)
+
+
 ## 🏆 Challenge Scoring Alignment
 
 | Criterion | Weight | How RASIP Delivers |
