@@ -10,14 +10,14 @@
 
 ---
 
-![Alt Text](asset/drone2end.png)
+![Alt Text](asset/main.png)
 
 ## 🧩 Project Overview
 
 RASIP is a production-grade, end-to-end intelligent autonomous drone swarm platform built for **civilian disaster response, search & rescue, environmental monitoring, infrastructure inspection, smart city operations, and emergency communications recovery**. It unifies computer vision, IoT sensor streams, boid swarm physics, retrieval-augmented memory (RAG), blockchain-inspired identity verification, MANET mesh networking, and Microsoft Fabric cloud analytics into a single continuously adaptive, self-healing autonomous intelligence ecosystem.
 
 ---
-![Alt Text](asset/main.png)
+![Alt Text](asset/drone2end.png)
 
 ## 📋 Module Overview
 
