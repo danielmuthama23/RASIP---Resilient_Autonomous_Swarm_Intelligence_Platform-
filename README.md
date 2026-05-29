@@ -10,7 +10,7 @@
 
 ---
 
-[Alt Text](asset/drone2end.png)
+![Alt Text](asset/drone2end.png)
 
 ## 🧩 Project Overview
 
@@ -321,7 +321,7 @@ Fabric ingestion is driven by `backend/fabric/fabric_stream.py`, which batches t
 
 ---
 
-[Alt Text](asset/analytics.png)
+![Alt Text](asset/analytics.png)
 
 
 ## 🏆 Challenge Scoring Alignment

@@ -357,7 +357,7 @@ Fabric ingestion is driven by `backend/fabric/fabric_stream.py`, which batches t
 **Daniel Muthama**
 Software Engineer · AI & Data Science
 Kenya, Africa · Remote-Ready
-📧 danielmuthama23@gmail.com
+📧 [danielmuthama23@gmail.com](danielmuthama23@gmail.com)
 🐙 [github.com/danielmuthama23](https://github.com/danielmuthama23)
 
 ---
