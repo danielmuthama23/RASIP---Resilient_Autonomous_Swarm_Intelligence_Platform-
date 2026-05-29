@@ -1,6 +1,6 @@
 # Core Objectives
 
-The system was built to explore:
+The system was built to explore: -
 
 - Autonomous coordination
 - Distributed decision-making
@@ -88,7 +88,7 @@ Integrated services:
 - Microsoft Fabric
 - Azure Event Hub
 - Azure AI Foundry
-- OneLake
+- OneLake ya
 - KQL Analytics
 - Copilot Studio
 
