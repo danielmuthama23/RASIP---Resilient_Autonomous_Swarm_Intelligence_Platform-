@@ -14,6 +14,40 @@ from .fabric.fabric_stream      import FabricStream
 from .fabric.analytics          import SwarmAnalytics
 from .fabric.retraining_pipeline import RetrainingPipeline
 
+
+def map_incoming_drones(drones_raw):
+    """Normalize incoming drone frames to backend internal shape.
+
+    Returns list of dicts with keys: id, x, y, altitude, battery, signal, ai_conf, alert
+    Values for battery/signal/ai_conf are scaled to 0..100 if provided in 0..1.
+    """
+    mapped = []
+    for d in drones_raw:
+        mapped.append({
+            "id": d.get("droneId") or d.get("id"),
+            "x": d.get("pos", {}).get("x", 0),
+            "y": d.get("pos", {}).get("y", 0),
+            "altitude": d.get("pos", {}).get("z", d.get("altitude", 0)),
+            "battery": d.get("battery", d.get("bat", 0)),
+            "signal": d.get("signal", d.get("sig", 0)),
+            "ai_conf": d.get("aiConf", d.get("ai_conf", 0)),
+            "alert": d.get("alert", False),
+        })
+
+    # Drop invalid frames without id
+    mapped = [m for m in mapped if m.get("id")]
+
+    # Normalize metrics: if values are in 0..1 range, scale to 0..100 for frontend
+    for m in mapped:
+        if isinstance(m.get("signal"), (int, float)) and 0.0 <= m["signal"] <= 1.0:
+            m["signal"] = m["signal"] * 100.0
+        if isinstance(m.get("ai_conf"), (int, float)) and 0.0 <= m["ai_conf"] <= 1.0:
+            m["ai_conf"] = m["ai_conf"] * 100.0
+        if isinstance(m.get("battery"), (int, float)) and 0.0 <= m["battery"] <= 1.0:
+            m["battery"] = m["battery"] * 100.0
+
+    return mapped
+
 # ── Lifespan: wire up and start all background services ──
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -104,3 +138,28 @@ async def retrain_jobs(request: Request):
 @app.get("/mesh/topology")
 async def mesh_topology(request: Request):
     return request.app.state.mcp.snapshot()
+
+
+@app.post("/ingest")
+async def ingest_telemetry(body: dict, request: Request):
+    """Accept an array of telemetry frames (JSONL-style) and inject into Fabric and MCP.
+
+    Expected body example:
+      {"drones": [ {"droneId":..., "ts":..., "battery":..., "signal":..., "aiConf":..., "pos":{x,y,z}, "formation":..., "alert":...}, ... ] }
+    """
+    drones = body.get("drones") or body.get("frames") or []
+    if not isinstance(drones, list):
+        return {"status": "error", "reason": "drones must be a list"}
+
+    # Map and normalize incoming fields using helper
+    mapped = map_incoming_drones(drones)
+    request.app.state.fabric.ingest(mapped)
+    request.app.state.mcp.update(mapped)
+    try:
+        # Broadcast same payload shape as TelemetryGenerator
+        from .websocket_server import broadcast
+        await broadcast({"type": "telemetry", "drones": mapped})
+    except Exception:
+        pass
+
+    return {"status": "ok", "ingested": len(mapped)}

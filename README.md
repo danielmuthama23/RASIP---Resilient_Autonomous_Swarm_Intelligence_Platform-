@@ -40,25 +40,71 @@ RASIP is a production-grade, end-to-end intelligent autonomous drone swarm platf
 ## 🏗️ System Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│              CLOUD CONTROL LAYER (Microsoft Fabric)             │
-│     Fabric Lakehouse · Azure Event Hub · AI Foundry · OneLake  │
-└───────────────────────────────┬─────────────────────────────────┘
-                                │ Encrypted Streams (AES-256-GCM)
-┌───────────────────────────────▼─────────────────────────────────┐
-│               SWARM NETWORKING LAYER (MANET Mesh)               │
-│    QUIC Primary · MQTT Fallback · ZeroMQ Emergency · MCP Sync  │
-└───────────────────────────────┬─────────────────────────────────┘
-                                │
-┌───────────────────────────────▼─────────────────────────────────┐
-│                EDGE AI DRONE LAYER (20 Drones)                  │
-│     YOLOv8 · Sensor Fusion · GPS + SLAM · Kalman · LiDAR       │
-└───────────────────────────────┬─────────────────────────────────┘
-                                │
-┌───────────────────────────────▼─────────────────────────────────┐
-│              FRONTEND COMMAND CENTER (Next.js 14)               │
-│    Swarm Theater · Telemetry · Mesh Network · Analytics         │
-└─────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────────────────────┐
+│                           COMMAND & CONTROL CENTER (Next.js 14)                             │
+│──────────────────────────────────────────────────────────────────────────────────────────────│
+│ Swarm Theater │ Live Telemetry │ Digital Twin │ Analytics Dashboard │ AI Insights │ Copilot │
+└───────────────────────────────────────┬──────────────────────────────────────────────────────┘
+                                        │
+                                        ▼
+┌──────────────────────────────────────────────────────────────────────────────────────────────┐
+│                           API & ORCHESTRATION LAYER (FastAPI)                               │
+│──────────────────────────────────────────────────────────────────────────────────────────────│
+│ REST APIs │ GraphQL │ WebSockets │ MCP Server │ Agent Orchestrator │ Event Processing       │
+└───────────────────────────────────────┬──────────────────────────────────────────────────────┘
+                                        │
+         ┌──────────────────────────────┼──────────────────────────────┐
+         ▼                              ▼                              ▼
+
+┌─────────────────────┐    ┌─────────────────────┐    ┌─────────────────────────┐
+│   SWARM AI ENGINE   │    │   NETWORK LAYER     │    │   SECURITY LAYER        │
+├─────────────────────┤    ├─────────────────────┤    ├─────────────────────────┤
+│ Boids Physics       │    │ MANET Mesh          │    │ AES-256-GCM Encryption  │
+│ Formation Control   │    │ QUIC Transport      │    │ Hedera Hash Ledger      │
+│ Consensus Voting    │    │ MQTT Fallback       │    │ Digital Signatures      │
+│ Mission Planning    │    │ ZeroMQ Emergency    │    │ Identity Verification   │
+│ Multi-Agent Logic   │    │ Satellite Backup    │    │ Biometric Access        │
+└──────────┬──────────┘    └──────────┬──────────┘    └──────────┬──────────────┘
+           │                          │                          │
+           └──────────────┬───────────┴───────────┬──────────────┘
+                          ▼                       ▼
+
+┌──────────────────────────────────────────────────────────────────────────────────────────────┐
+│                              EDGE AI DRONE LAYER (20+)                                      │
+│──────────────────────────────────────────────────────────────────────────────────────────────│
+│ YOLOv8 Detection │ Visual SLAM │ TinyML │ LiDAR │ GPS │ IMU │ Camera │ Radar │ Sensors     │
+└───────────────────────────────────────┬──────────────────────────────────────────────────────┘
+                                        │
+                                        ▼
+┌──────────────────────────────────────────────────────────────────────────────────────────────┐
+│                            SENSOR FUSION & NAVIGATION                                       │
+│──────────────────────────────────────────────────────────────────────────────────────────────│
+│ Kalman Filter │ GPS + IMU + SLAM Fusion │ Obstacle Avoidance │ Autonomous Routing           │
+└───────────────────────────────────────┬──────────────────────────────────────────────────────┘
+                                        │
+                                        ▼
+┌──────────────────────────────────────────────────────────────────────────────────────────────┐
+│                           DATA & INTELLIGENCE PLATFORM                                      │
+├──────────────────────────────────────────────────────────────────────────────────────────────┤
+│ MCP Context Engine │ RAG │ Vector Database (Qdrant) │ Knowledge Graph │ Digital Twin         │
+└───────────────────────────────────────┬──────────────────────────────────────────────────────┘
+                                        │
+                                        ▼
+┌──────────────────────────────────────────────────────────────────────────────────────────────┐
+│                         MICROSOFT FABRIC & AZURE CLOUD                                      │
+├──────────────────────────────────────────────────────────────────────────────────────────────┤
+│ Azure Event Hub │ Fabric EventStream │ OneLake │ Lakehouse │ Data Warehouse                │
+│ Real-Time Intelligence │ KQL │ Power BI │ Fabric Data Science │ Fabric Notebooks           │
+│ Azure AI Foundry │ Copilot Studio │ Model Registry │ AI Retraining Pipeline             │
+└───────────────────────────────────────┬──────────────────────────────────────────────────────┘
+                                        │
+                                        ▼
+┌──────────────────────────────────────────────────────────────────────────────────────────────┐
+│                            EXTERNAL DATA SOURCES                                            │
+├──────────────────────────────────────────────────────────────────────────────────────────────┤
+│ Satellite Feeds │ GPS Networks │ Weather APIs │ Emergency Services │ IoT Sensors            │
+└──────────────────────────────────────────────────────────────────────────────────────────────┘
+
 ```
 
 ### Complete End-to-End Data Flow
@@ -75,6 +121,46 @@ RASIP is a production-grade, end-to-end intelligent autonomous drone swarm platf
 | **08** | Fabric Analytics | KQL · OneLake · Power BI Dashboards |
 | **09** | Digital Twin + RAG | Cloud mirror sync + Qdrant embeddings |
 | **10** | AI Model Retraining | Collect → Dataset → Fine-tune → Deploy edge |
+
+#### Directional Flow
+
+Drone Sensors
+      │
+      ▼
+YOLOv8 + SLAM + TinyML
+      │
+      ▼
+Sensor Fusion + Kalman Filter
+      │
+      ▼
+Swarm Consensus Engine
+      │
+      ▼
+MANET / QUIC Mesh Network
+      │
+      ▼
+AES-256 + Hedera Verification
+      │
+      ▼
+Azure Event Hub
+      │
+      ▼
+Microsoft Fabric EventStream
+      │
+      ▼
+OneLake + Lakehouse
+      │
+      ▼
+KQL Analytics + Power BI
+      │
+      ▼
+AI Foundry + MCP + RAG
+      │
+      ▼
+Copilot Studio
+      │
+      ▼
+Command Center Dashboard
 
 ---
 
